@@ -9,6 +9,9 @@
             [ajax.core :refer [GET POST]])
   (:import goog.History))
 
+
+;; Helper functions
+
 (def messages (r/atom []))
 
 (GET "/api/messages"
@@ -23,16 +26,45 @@
      ^{:key idx}
      [message-item message])])
 
-(defn wellcome []
-  [:div.wellcome
-   [:h2 "Wellcome to Ansku's site!"]])
+(defn input [tag id label form]
+  [:div.form-group
+   [:label label]
+   [tag
+    {:type :text
+     :value (id @form)
+     :on-change
+     #(swap! form
+             assoc
+             id (-> % .-target .-value))}]]
+  )
+
+(defn add-message [form]
+  (POST "/api/message"
+        {:params @form
+         :handler
+         #(do
+           (swap! messages conj @form)
+           (reset! form {}))}))
+
+(defn message-form []
+  (let [form (r/atom {})]
+    (fn []
+      [:div
+       [:p (str @form)]
+       [input :input.form-control :guest "vieras" form]
+       [input :textarea.form-control :message "viesti" form]
+       [:button.btn.btn-primary
+        {:on-click #(add-message form)}
+        "add message"]])))
+
+;; the actual page structure
 
 (defn home-page []
   [:div#myapp.container
-   [:h3 "guestbook"]
+   [:h3 "Vieraskirja, jätä viesti!"]
+   [message-form]
    [:hr]
-   [message-list @messages]
-   [wellcome]])
+   [message-list @messages]])
 
 (defn mount-components []
   (r/render [#'home-page] (.getElementById js/document "app")))
